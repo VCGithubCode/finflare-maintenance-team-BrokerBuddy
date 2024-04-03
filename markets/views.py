@@ -96,7 +96,7 @@ def display_data(request):
         'stock_names': [position.stock for position in open_positions],
         'stock_quantities': [position.quantity for position in open_positions],
         'stock_value': [position.calculate_stock_value for position in open_positions],
-        'stock_profit_loss': [position.calculate_profit_loss for position in open_positions],
+        'stock_profit_loss': sum(position.calculate_profit_loss for position in open_positions),
     }
 
     stock_context = stock_data(request)
