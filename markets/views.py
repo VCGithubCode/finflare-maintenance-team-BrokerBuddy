@@ -54,11 +54,12 @@ def get_market_data(api_key, category, max_items=5):
 
 def stock_data(request):
     """
-    View function for displaying market data
+    Fetches market data based on the selected category 
+    and returns it as a dictionary.
     """
     api_key = settings.API_KEY
     categories = ['Stocks US', 'Crypto', 'Currencies', 'Futures']
-    selected_category = 'Stocks US'  # Default category
+    selected_category = 'Stocks US'  # default category
     if request.method == 'POST':
         selected_category = request.POST.get('stockSelector', selected_category)
     
@@ -87,6 +88,10 @@ def stock_data(request):
 
 
 def display_data(request):
+    """
+    Retrieves user portfolio data and market data, 
+    and renders a template with the combined context.
+    """
     user_portfolio = UserAccountPortfolio.objects.get(user=request.user)
     balance = user_portfolio.balance
     open_positions = StockBalance.objects.filter(user=user_portfolio, is_buy_position=True)
@@ -110,12 +115,15 @@ def display_data(request):
 
 
 def trade_stock(request):
+    """
+    Handles stock trading transactions.
+    """
     portfolio_context = {}
    
     try:
         if request.method == 'POST':
             handle_transaction_data(request)       
-            update_context(request, portfolio_context)  
+            update_context(request, portfolio_context)  # ??
             return redirect('markets')
 
     except Exception as e:
@@ -125,6 +133,9 @@ def trade_stock(request):
 
 
 def handle_transaction_data(request):    
+    """
+    Handles stock transaction data submitted via HTTP POST request.
+    """
     user_profile = UserAccountPortfolio.objects.get(user = request.user)
     transaction_type = request.POST.get('transaction_type')
     stock_name = request.POST.get('name')
@@ -138,16 +149,20 @@ def handle_transaction_data(request):
     elif transaction_type == 'SELL':
         handle_sell_stock(user_profile, stock, quantity, price)
 
-    print('handeled transaction data success')    
-
 
 def validate_quantity(quantity_str):
+    """
+    Validates the quantity string and converts it to an integer.
+    """
     if not quantity_str or not quantity_str.isdigit():
         raise ValueError(f"Invalid quantity: {quantity_str}")
     return int(quantity_str)
 
 
 def handle_buy_stock(user_profile, stock, quantity, price):
+    """
+    Handles buy stock transaction.
+    """
     total_position_cost = quantity * price
     if total_position_cost > user_profile.balance:
         raise ValueError('Insufficient funds to complete the purchase. Please try again.')
@@ -157,11 +172,13 @@ def handle_buy_stock(user_profile, stock, quantity, price):
     update_position(user_profile, stock, quantity, price, is_buy_position=True)
 
     # messages.success(request, f"You have bought {quantity} shares of {stock}.")
-    print('handeled buy position success')
     return transaction
 
 # refactor further
 def handle_sell_stock(user_profile, stock, quantity, price):
+    """
+    Handles sell stock transaction (close buy position).
+    """
     try:   
         position = StockBalance.objects.get(
             user=user_profile,
@@ -185,6 +202,9 @@ def handle_sell_stock(user_profile, stock, quantity, price):
 
 
 def create_transaction(user_profile, transaction_type, stock, quantity, price):
+    """
+    Creates a transaction record for a user.
+    """
     transaction = Transaction.objects.create(
         user=user_profile,
         transaction_type=transaction_type,
@@ -194,19 +214,23 @@ def create_transaction(user_profile, transaction_type, stock, quantity, price):
     )
 
     transaction.save()
-    print('create buy transaction success')
 
 
 def update_user_balance(user_profile, position_cost, transaction_type):
+    """
+    Updates the user's balance based on the transaction type.
+    """
     if transaction_type == 'BUY':
         user_profile.balance -= position_cost
     elif transaction_type == 'SELL':
         user_profile.balance += position_cost        
     user_profile.save()
-    print('update user balance success')
 
 
 def update_position(user_profile, stock, quantity, price, is_buy_position):
+    """
+    Updates the user's stock position.
+    """
     position_buy = StockBalance.objects.filter(
         user=user_profile,
         stock=stock,
@@ -225,12 +249,13 @@ def update_position(user_profile, stock, quantity, price, is_buy_position):
         position_buy.quantity += quantity
 
     position_buy.save()
-    print('update position success')
-
     return position_buy
 
 
 def update_context(request, context):
+    """
+    Updates the context with user portfolio data.
+    """
     try: 
         user_portfolio = UserAccountPortfolio.objects.get(user=request.user)
         balance = user_portfolio.balance
@@ -247,4 +272,3 @@ def update_context(request, context):
             'stock_names': [],
             'stock_quantities': [],
         }
-    print('update context success')
