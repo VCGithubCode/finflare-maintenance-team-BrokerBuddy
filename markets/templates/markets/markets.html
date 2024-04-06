@@ -70,6 +70,7 @@
                           {% csrf_token %}
                           <input type="hidden" name="name" value="{{ data.name }}">
                           <input type="hidden" name="price" value="{{ data.price }}">
+                          <!-- <input type="hidden" name="price" value="101"> -->
                           <input type="text" class="form-control me-2" placeholder="Amount" aria-label="multiple select example" name="quantitySelector">
                           <button type="submit" name="transaction_type" value="SELL" id="btn-btn-sell" class="btn me-2 btn-sell">Sell</button>
                           <button type="submit" name="transaction_type" value="BUY" id="btn-btn-buy" class="btn btn-buy">Buy</button>
@@ -81,43 +82,7 @@
                 {% endfor %}
               </div>
           </div>
-
-          <!-- test -->
-          <!-- <div>
-            {% if stock_names %}    
-                <div class="col-12 text-center">
-                    <ul style="list-style-type: none; padding: 0;">
-                        {% for stock_name in stock_names %}
-                            <li style="display: flex; margin-right: 10px;">
-                                <p class="text-bold">Name: {{ stock_name }}</p>
-                            </li>
-                        {% endfor %}         
-                    </ul>
-                </div>
-              {% else %}
-            <div class="col-12">
-              <p id="stock-message">Zero stocks, all potential.<br> - Let's kickstart your portfolio adventure!</p>
-            </div>     
-            {% endif %}  
-            
-            {% if stock_quantities %}    
-                <div class="col-12 text-center">
-                    <ul style="list-style-type: none; padding: 0;">
-                        {% for stock_quantity in stock_quantities %}
-                            <li style="display: flex; margin-right: 10px;">
-                                <p class="text-bold">Quantity: {{ stock_quantity }}</p>
-                            </li>
-                        {% endfor %}         
-                    </ul>
-                </div>
-              {% else %}
-            <div class="col-12">
-              <p id="stock-message">Zero stocks, all potential.<br> - Let's kickstart your portfolio adventure!</p>
-            </div>     
-            {% endif %}       
-          </div> -->
-          <!-- end test -->
-
+                    
           <!-- List Selection Category -->
           <form action="" method="post">
             {% csrf_token %}
@@ -138,5 +103,5 @@
 {% endblock %} 
 
 {% block postloadjs %}
-  <script src="{% static 'markets/js/markets.js' %}"></script>
+  <!-- <script src="{% static 'markets/js/markets.js' %}"></script> -->
 {% endblock %}
