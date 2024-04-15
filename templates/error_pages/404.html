@@ -1,12 +1,12 @@
+{% extends "base.html" %} 
 {% load static %}
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'assets/404style.css' %}">
-    <!-- <link rel="stylesheet" href="{% static 'accounts/css/accounts.css' %}"> -->
+    <link rel="stylesheet" href="{% static 'accounts/css/accounts.css' %}">
 {% endblock %}
 
 {% block content %}
-  <body>
     <main>
       <!-- Background by AlphaTradeZone https://www.pexels.com/photo/stressed-man-monitoring-charts-5831256/ -->
       <div class="background-image">
@@ -128,5 +128,4 @@
     <script src="{% static 'js/script.js' %}"></script>
     {% endblock %}
     {% endblock %}
-  </body>
 </html>
