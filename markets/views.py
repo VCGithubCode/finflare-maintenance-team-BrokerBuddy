@@ -141,15 +141,15 @@ def handle_transaction_data(request):
     """
     Handles stock transaction data submitted via HTTP POST request.
     """
-    user_profile = UserAccountPortfolio.objects.get(user = request.user)
-    transaction_type = request.POST.get('transaction_type')
-    stock_name = request.POST.get('name')
-    quantity = validate_quantity(request.POST.get('quantitySelector'))
-    price = Decimal(request.POST.get('price'))
-
-    stock = get_object_or_404(Stock, name=stock_name)
-
     try: 
+        user_profile = UserAccountPortfolio.objects.get(user = request.user)
+        transaction_type = request.POST.get('transaction_type')
+        stock_name = request.POST.get('name')
+        quantity = validate_quantity(request.POST.get('quantitySelector'))
+        price = Decimal(request.POST.get('price'))
+
+        stock = get_object_or_404(Stock, name=stock_name)
+
         if transaction_type == 'BUY':
             handle_buy_stock(user_profile, stock, quantity, price)
         elif transaction_type == 'SELL':
@@ -159,8 +159,7 @@ def handle_transaction_data(request):
         messages.error(request, "No position found for selling.")
     
     except ValueError as value_err:
-        messages.error(request, f"Transaction error: {value_err}")
-        
+        messages.error(request, f"Transaction error: {value_err}")        
 
 
 def validate_quantity(quantity_str):
