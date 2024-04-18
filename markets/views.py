@@ -1,8 +1,8 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.conf import settings
-from django.urls import reverse
 import requests
 from django.contrib import messages
+from django.core.exceptions import ObjectDoesNotExist
 from .models import UserAccountPortfolio, StockBalance, Transaction, Stock
 from decimal import Decimal
 
@@ -129,14 +129,10 @@ def trade_stock(request):
     """
     portfolio_context = {}
    
-    try:
-        if request.method == 'POST':
-            handle_transaction_data(request)       
-            update_context(request, portfolio_context)  # ??
-            return redirect('markets')
-
-    except Exception as e:
-        print(e)
+    if request.method == 'POST':
+        handle_transaction_data(request)       
+        update_context(request, portfolio_context)  # ??
+        return redirect('markets')
 
     return render(request, 'markets/markets.html', portfolio_context)   
 
@@ -153,10 +149,18 @@ def handle_transaction_data(request):
 
     stock = get_object_or_404(Stock, name=stock_name)
 
-    if transaction_type == 'BUY':
-        handle_buy_stock(user_profile, stock, quantity, price)
-    elif transaction_type == 'SELL':
-        handle_sell_stock(user_profile, stock, quantity, price)
+    try: 
+        if transaction_type == 'BUY':
+            handle_buy_stock(user_profile, stock, quantity, price)
+        elif transaction_type == 'SELL':
+            handle_sell_stock(user_profile, stock, quantity, price)
+    
+    except ObjectDoesNotExist:
+        messages.error(request, "No position found for selling.")
+    
+    except ValueError as value_err:
+        messages.error(request, f"Transaction error: {value_err}")
+        
 
 
 def validate_quantity(quantity_str):
@@ -188,15 +192,11 @@ def handle_sell_stock(user_profile, stock, quantity, price):
     """
     Handles sell stock transaction (close buy position).
     """
-    try:   
-        position = StockBalance.objects.get(
-            user=user_profile,
-            stock=stock,
-            is_buy_position=True
-        )
-    except StockBalance.DoesNotExist:
-        # add message for the user
-        return "No position found for selling"
+    position = StockBalance.objects.get(
+        user=user_profile,
+        stock=stock,
+        is_buy_position=True
+    )   
 
     if position:         
         position.quantity -= min(position.quantity, quantity)
