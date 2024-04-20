@@ -1,8 +1,8 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.conf import settings
-from django.urls import reverse
 import requests
 from django.contrib import messages
+from django.core.exceptions import ObjectDoesNotExist
 from .models import UserAccountPortfolio, StockBalance, Transaction, Stock
 from decimal import Decimal
 
@@ -92,19 +92,28 @@ def display_data(request):
     Retrieves user portfolio data and market data, 
     and renders a template with the combined context.
     """
-    user_portfolio = UserAccountPortfolio.objects.get(user=request.user)
-    balance = user_portfolio.balance
-    open_positions = StockBalance.objects.filter(user=user_portfolio, is_buy_position=True)
-    
-    portfolio_context = {
-        'balance': balance,
-        'stock_names': [position.stock for position in open_positions],
-        'stock_quantities': [position.quantity for position in open_positions],
-        'stock_value': [position.calculate_stock_value for position in open_positions],
-        'stock_profit_loss': sum(position.calculate_profit_loss for position in open_positions),
-    }
+    try:
+        user_portfolio = UserAccountPortfolio.objects.get(user=request.user)
+        balance = user_portfolio.balance
+        open_positions = StockBalance.objects.filter(user=user_portfolio, is_buy_position=True)
+        
+        portfolio_context = {
+            'balance': balance,
+            'stock_names': [position.stock for position in open_positions],
+            'stock_quantities': [position.quantity for position in open_positions],
+            'stock_value': [position.calculate_stock_value for position in open_positions],
+            'stock_profit_loss': sum(position.calculate_profit_loss for position in open_positions),
+        }
+    except UserAccountPortfolio.DoesNotExist:
+        messages.error(request, 'User portfolio not found.')
+        return render(request, 'markets/markets.html')        
 
-    stock_context = stock_data(request)
+    try:
+        stock_context = stock_data(request)
+
+    except Exception as market_data_err:
+        messages.error(request, f"Error retrieving market data: {market_data_err}")
+        stock_context = {}    
 
     context = {
         **portfolio_context,
@@ -120,14 +129,10 @@ def trade_stock(request):
     """
     portfolio_context = {}
    
-    try:
-        if request.method == 'POST':
-            handle_transaction_data(request)       
-            update_context(request, portfolio_context)  # ??
-            return redirect('markets')
-
-    except Exception as e:
-        print(e)
+    if request.method == 'POST':
+        handle_transaction_data(request)       
+        update_context(request, portfolio_context)  # ??
+        return redirect('markets')
 
     return render(request, 'markets/markets.html', portfolio_context)   
 
@@ -136,18 +141,25 @@ def handle_transaction_data(request):
     """
     Handles stock transaction data submitted via HTTP POST request.
     """
-    user_profile = UserAccountPortfolio.objects.get(user = request.user)
-    transaction_type = request.POST.get('transaction_type')
-    stock_name = request.POST.get('name')
-    quantity = validate_quantity(request.POST.get('quantitySelector'))
-    price = Decimal(request.POST.get('price'))
+    try: 
+        user_profile = UserAccountPortfolio.objects.get(user = request.user)
+        transaction_type = request.POST.get('transaction_type')
+        stock_name = request.POST.get('name')
+        quantity = validate_quantity(request.POST.get('quantitySelector'))
+        price = Decimal(request.POST.get('price'))
 
-    stock = get_object_or_404(Stock, name=stock_name)
+        stock = get_object_or_404(Stock, name=stock_name)
 
-    if transaction_type == 'BUY':
-        handle_buy_stock(user_profile, stock, quantity, price)
-    elif transaction_type == 'SELL':
-        handle_sell_stock(user_profile, stock, quantity, price)
+        if transaction_type == 'BUY':
+            handle_buy_stock(user_profile, stock, quantity, price)
+        elif transaction_type == 'SELL':
+            handle_sell_stock(user_profile, stock, quantity, price)
+    
+    except ObjectDoesNotExist:
+        messages.error(request, "No position found for selling.")
+    
+    except ValueError as value_err:
+        messages.error(request, f"Transaction error: {value_err}")        
 
 
 def validate_quantity(quantity_str):
@@ -179,15 +191,11 @@ def handle_sell_stock(user_profile, stock, quantity, price):
     """
     Handles sell stock transaction (close buy position).
     """
-    try:   
-        position = StockBalance.objects.get(
-            user=user_profile,
-            stock=stock,
-            is_buy_position=True
-        )
-    except StockBalance.DoesNotExist:
-        # add message for the user
-        return "No position found for selling"
+    position = StockBalance.objects.get(
+        user=user_profile,
+        stock=stock,
+        is_buy_position=True
+    )   
 
     if position:         
         position.quantity -= min(position.quantity, quantity)
